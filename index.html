@@ -27,7 +27,6 @@
         .brand-name, .time { font-size: 40px; font-weight: 600; letter-spacing: 6px; text-transform: uppercase; color: #ffffff; }
         .project-name, .date { font-size: 25px; font-weight: 300; letter-spacing: 1px; color: #ffffff; }
 
-        /* Data Boxes ปรับความสูงและจัดกลาง */
         .data-box { 
             position: absolute; width: 280px; height: 180px; background: rgba(255, 255, 255, 0.08); 
             backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.2); 
@@ -35,22 +34,18 @@
             flex-direction: column; justify-content: center; padding: 20px; transition: 0.3s; 
         }
 
-        /* Positions */
         .solar-box { top: 370px; left: 50%; transform: translateX(-50%); } 
         .pea-box   { top: 560px; left: 87%; transform: translateX(-50%);}
         .mg-box    { top: 1080px; left: 85%; transform: translateX(-50%);}
         .home-box  { top: 840px; left: 33%; transform: rotateY(-25deg) rotateX(2deg); box-shadow: -20px 20px 50px rgba(0,0,0,0.5); }
 
         .data-box .title { font-size: 22px; font-weight: 600; color: #ffffff; text-transform: uppercase; text-align: center; margin-bottom: 15px; letter-spacing: 2px; }
-        
-        /* จัดตัวเลขให้มาอยู่กึ่งกลาง */
         .data-row { display: flex; justify-content: center; align-items: baseline; margin-bottom: 2px; gap: 10px; width: 100%; }
-        
-        .data-box .value { font-size: 32px; font-weight: 600; color: #ffffff; text-align: right; }
+        .data-box .value { font-size: 32px; font-weight: 600; color: #ffffff; text-align: right; transition: all 0.3s ease; }
         .data-box .unit { font-size: 20px; color: #ffffff; width: 45px; text-align: left; opacity: 0.8; }
 
-        /* Footer Info */
-        .update-tag { position: absolute; bottom: 40px; left: 100px; color: rgba(255,255,255,0.4); font-size: 18px; }
+        .update-tag { position: absolute; bottom: 40px; left: 100px; color: rgba(255,255,255,0.4); font-size: 18px; display: flex; flex-direction: column; gap: 5px; }
+        #last-update { color: #00ff00; font-weight: 400; } /* ให้เวลาเป็นสีเขียวจางๆ จะได้ดูง่าย */
     </style>
 </head>
 <body>
@@ -89,10 +84,12 @@
             <div class="title">MG4 Charger</div>
             <div class="data-row"><span class="value" id="mg-kw">0.00</span><span class="unit">kW</span></div>
             <div class="data-row"><span class="value" id="mg-amp">0.00</span><span class="unit">A</span></div>
-            
         </div>
 
-        <div class="update-tag">Online Viewer Mode (Read-Only)</div>
+        <div class="update-tag">
+            <span>Online Viewer Mode (Read-Only)</span>
+            <span id="last-update">Syncing...</span>
+        </div>
     </div>
 
     <script>
@@ -102,19 +99,19 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // ฟังการอัปเดตจาก Firebase
         function listenToEnergy() {
             database.ref('/live_power').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     document.getElementById('solar-kw').innerText = data.solar.kw.toFixed(2);
                     document.getElementById('solar-amp').innerText = data.solar.amp.toFixed(2);
-                    
                     document.getElementById('home-kw').innerText = data.home.kw.toFixed(2);
                     document.getElementById('home-amp').innerText = data.home.amp.toFixed(2);
-                    
                     document.getElementById('mg-kw').innerText = data.mg.kw.toFixed(2);
-                    document.getElementById('last-update').innerText = "Update: " + (data.lastUpdate || "");
+                    document.getElementById('mg-amp').innerText = (data.mg.amp || 0).toFixed(2);
+                    
+                    // แสดงเวลาที่มุมล่างซ้าย
+                    document.getElementById('last-update').innerText = "Last Update: " + (data.lastUpdate || "");
                     
                     document.getElementById('pea-kw').innerText = data.pea.kw.toFixed(2);
                     document.getElementById('pea-amp').innerText = data.pea.amp.toFixed(2);
