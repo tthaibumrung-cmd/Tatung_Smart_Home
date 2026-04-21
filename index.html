@@ -32,12 +32,12 @@
             position: absolute; width: 280px; height: 180px; background: rgba(255, 255, 255, 0.08); 
             backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.2); 
             border-radius: 40px; z-index: 5; color: #ffffff; display: flex; 
-            flex-direction: column; justify-content: center; padding: 20px; transition: 0.3s; 
+            flex-direction: column; justify-content: center; padding: 20px; 
         }
         .solar-box { top: 370px; left: 50%; transform: translateX(-50%); } 
         .pea-box   { top: 560px; left: 87%; transform: translateX(-50%);}
         .mg-box    { top: 1080px; left: 85%; transform: translateX(-50%);}
-        .home-box  { top: 840px; left: 33%; transform: rotateY(-25deg) rotateX(2deg); box-shadow: -20px 20px 50px rgba(0,0,0,0.5); }
+        .home-box  { top: 840px; left: 33%; transform: rotateY(-25deg) rotateX(2deg); }
 
         .data-box .title { font-size: 22px; font-weight: 600; color: #ffffff; text-transform: uppercase; text-align: center; margin-bottom: 12px; letter-spacing: 2px; }
         .data-row { display: flex; justify-content: center; align-items: baseline; margin-bottom: 2px; gap: 10px; width: 100%; }
@@ -56,7 +56,7 @@
 
         /* Light Panel */
         .light-panel {
-            position: absolute; bottom: 220px; right: 80px; width: 480px;
+            position: absolute; bottom: 220px; right: 80px; width: 500px;
             background: rgba(15, 15, 15, 0.9); backdrop-filter: blur(50px);
             border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.15);
             padding: 40px; z-index: 90; display: none; flex-direction: column; gap: 15px;
@@ -64,22 +64,17 @@
         }
         .light-panel.show { display: flex; animation: fadeUp 0.3s ease-out; }
 
-        .switch-row { 
+        /* Style สำหรับปุ่มที่สร้างจาก JS */
+        .sub-light-btn { 
             display: flex; justify-content: space-between; align-items: center; 
-            padding: 18px 25px; background: rgba(255,255,255,0.05); border-radius: 25px;
+            padding: 18px 30px; background: rgba(255,255,255,0.05); border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.1); color: #fff; cursor: pointer;
+            transition: 0.3s; width: 100%; outline: none;
         }
-        .switch-name { color: #fff; font-size: 24px; font-weight: 300; }
-        
-        .btn-toggle {
-            width: 90px; height: 45px; background: #444; border-radius: 25px;
-            position: relative; cursor: pointer; transition: 0.4s;
-        }
-        .btn-toggle::after {
-            content: ''; position: absolute; top: 4px; left: 4px; width: 37px; height: 37px;
-            background: #fff; border-radius: 50%; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .btn-toggle.on { background: #34c759; }
-        .btn-toggle.on::after { left: 49px; }
+        .sub-light-btn span { font-size: 24px; font-weight: 300; }
+        .sub-light-btn small { font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.4); }
+        .sub-light-btn.on { background: #34c759; border-color: #fff; color: #000; }
+        .sub-light-btn.on small { color: #000; }
 
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .update-tag { position: absolute; bottom: 40px; left: 100px; color: rgba(255,255,255,0.4); font-size: 18px; }
@@ -110,12 +105,7 @@
 
         <div class="light-panel" id="light-panel">
             <h2 style="color:#fff; text-align:center; font-weight:400; margin-bottom:15px; letter-spacing:2px;">LIGHTS</h2>
-            <div class="switch-row"><span class="switch-name">Living Room</span><div class="btn-toggle" id="sw-Room1" onclick="controlLight('Room1')"></div></div>
-            <div class="switch-row"><span class="switch-name">Garage</span><div class="btn-toggle" id="sw-Room2" onclick="controlLight('Room2')"></div></div>
-            <div class="switch-row"><span class="switch-name">Kitchen</span><div class="btn-toggle" id="sw-Room3" onclick="controlLight('Room3')"></div></div>
-            <div class="switch-row"><span class="switch-name">Bedroom</span><div class="btn-toggle" id="sw-Room4" onclick="controlLight('Room4')"></div></div>
-            <div class="switch-row"><span class="switch-name">Stairway</span><div class="btn-toggle" id="sw-Room5" onclick="controlLight('Room5')"></div></div>
-            <div class="switch-row"><span class="switch-name">Fence</span><div class="btn-toggle" id="sw-Room6" onclick="controlLight('Room6')"></div></div>
+            <div id="lightMenu" style="display: flex; flex-direction: column; gap: 12px;"></div>
         </div>
 
         <div class="update-tag">Smart Home Online <span id="last-update"></span></div>
@@ -133,40 +123,55 @@
             bulb.classList.toggle('active');
         }
 
-        function listenData() {
-            // ดึงค่าพลังงานจาก Firebase มาโชว์อย่างเดียว
-            database.ref('/live_power').on('value', (s) => {
-                const d = s.val();
-                if(d) {
-                    document.getElementById('solar-kw').innerText = d.solar.kw.toFixed(2);
-                    document.getElementById('solar-amp').innerText = d.solar.amp.toFixed(2);
-                    document.getElementById('home-kw').innerText = d.home.kw.toFixed(2);
-                    document.getElementById('home-amp').innerText = d.home.amp.toFixed(2);
-                    document.getElementById('mg-kw').innerText = d.mg.kw.toFixed(2);
-                    document.getElementById('mg-amp').innerText = (d.mg.amp || 0).toFixed(2);
-                    document.getElementById('pea-kw').innerText = d.pea.kw.toFixed(2);
-                    document.getElementById('pea-amp').innerText = d.pea.amp.toFixed(2);
-                    document.getElementById('last-update').innerText = " | Sync: " + (d.lastUpdate || "");
-                }
-            });
+        // ฟังค่าพลังงาน
+        database.ref('/live_power').on('value', (s) => {
+            const d = s.val();
+            if(d) {
+                document.getElementById('solar-kw').innerText = d.solar.kw.toFixed(2);
+                document.getElementById('solar-amp').innerText = d.solar.amp.toFixed(2);
+                document.getElementById('home-kw').innerText = d.home.kw.toFixed(2);
+                document.getElementById('home-amp').innerText = d.home.amp.toFixed(2);
+                document.getElementById('mg-kw').innerText = (d.mg.kw || 0).toFixed(2);
+                document.getElementById('mg-amp').innerText = (d.mg.amp || 0).toFixed(2);
+                document.getElementById('pea-kw').innerText = d.pea.kw.toFixed(2);
+                document.getElementById('pea-amp').innerText = d.pea.amp.toFixed(2);
+                document.getElementById('last-update').innerText = " | Sync: " + (d.lastUpdate || "");
+            }
+        });
 
-            // ดึงค่าสถานะไฟมาโชว์ที่ปุ่ม
-            database.ref('/smart_home/lights').on('value', (s) => {
-                const l = s.val();
-                if(l) {
-                    for(let i=1; i<=6; i++) {
-                        const roomKey = 'Room' + i;
-                        const el = document.getElementById('sw-' + roomKey);
-                        if(el) l[roomKey] ? el.classList.add('on') : el.classList.remove('on');
-                    }
-                }
-            });
-        }
+        // --- เริ่มต้นส่วน Logic ของคุณตุ๋ง ---
+        const roomNames = ["ห้องนั่งเล่น", "ห้องครัว1", "ห้องครัว2", "ห้องน้องแมว", "หน้าบ้าน"];
+        const lightMenu = document.getElementById('lightMenu');
 
-        function controlLight(roomKey) {
-            const ref = database.ref(`/smart_home/lights/${roomKey}`);
-            ref.once('value').then(s => ref.set(!s.val()));
+        for (let i = 1; i <= 6; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'sub-light-btn';
+            
+            const roomDisplayName = i === 6 ? "Room 6 All" : (roomNames[i-1] || `Room ${i}`);
+            btn.innerHTML = `<span>${roomDisplayName}</span> <small id="s${i}">OFF</small>`;
+            
+            // ดึงสถานะจาก Firebase (ใช้ 1=ON, 0=OFF ตามคำสั่ง)
+            database.ref(`/lights/room${i}`).on('value', snap => {
+                const on = snap.val() === 1;
+                btn.classList.toggle('on', on);
+                document.getElementById(`s${i}`).innerText = on ? "ON" : "OFF";
+            });
+            
+            btn.onclick = () => {
+                const isCurrentlyOn = btn.classList.contains('on');
+                const newVal = isCurrentlyOn ? 0 : 1;
+                
+                if (i === 6) {
+                    const updates = {};
+                    for(let r = 1; r <= 6; r++) { updates[`/lights/room${r}`] = newVal; }
+                    database.ref().update(updates);
+                } else {
+                    database.ref(`/lights/room${i}`).set(newVal);
+                }
+            };
+            lightMenu.appendChild(btn);
         }
+        // --- จบส่วน Logic ของคุณตุ๋ง ---
 
         function updateClock() {
             const now = new Date();
@@ -182,7 +187,6 @@
         autoScale();
         setInterval(updateClock, 1000);
         updateClock();
-        listenData();
     </script>
 </body>
 </html>
