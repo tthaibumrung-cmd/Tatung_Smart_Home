@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TATUNG SMART HOME - Online Viewer</title>
+    <title>TATUNG SMART HOME - Online Control</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -39,13 +39,28 @@
         .mg-box    { top: 1080px; left: 85%; transform: translateX(-50%);}
         .home-box  { top: 840px; left: 33%; transform: rotateY(-25deg) rotateX(2deg); box-shadow: -20px 20px 50px rgba(0,0,0,0.5); }
 
+        /* Light Control Box */
+        .light-box { 
+            top: 1350px; left: 50%; transform: translateX(-50%); 
+            width: 600px; height: auto; padding: 40px;
+        }
+
         .data-box .title { font-size: 22px; font-weight: 600; color: #ffffff; text-transform: uppercase; text-align: center; margin-bottom: 15px; letter-spacing: 2px; }
         .data-row { display: flex; justify-content: center; align-items: baseline; margin-bottom: 2px; gap: 10px; width: 100%; }
-        .data-box .value { font-size: 32px; font-weight: 600; color: #ffffff; text-align: right; transition: all 0.3s ease; }
+        .data-box .value { font-size: 32px; font-weight: 600; color: #ffffff; text-align: right; transition: 0.3s; }
         .data-box .unit { font-size: 20px; color: #ffffff; width: 45px; text-align: left; opacity: 0.8; }
 
-        .update-tag { position: absolute; bottom: 40px; left: 100px; color: rgba(255,255,255,0.4); font-size: 18px; display: flex; flex-direction: column; gap: 5px; }
-        #last-update { color: #ffffff; font-weight: 400; } /* ให้เวลาเป็นสีเขียวจางๆ จะได้ดูง่าย */
+        /* Switch UI */
+        .switch-container { display: flex; justify-content: space-around; width: 100%; margin-top: 10px; }
+        .btn-light {
+            padding: 20px 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1); color: #fff; font-size: 24px; cursor: pointer;
+            transition: 0.3s; min-width: 150px; text-align: center;
+        }
+        .btn-light.active { background: #ffcc00; color: #000; font-weight: 600; box-shadow: 0 0 30px #ffcc00; border: none; }
+
+        .update-tag { position: absolute; bottom: 40px; left: 100px; color: rgba(255,255,255,0.4); font-size: 18px; }
+        #last-update { margin-left: 15px; color: #00ff00; opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -86,10 +101,15 @@
             <div class="data-row"><span class="value" id="mg-amp">0.00</span><span class="unit">A</span></div>
         </div>
 
-        <div class="update-tag">
-            <span>Online Viewer Mode (Read-Only)</span>
-            <span id="last-update">Syncing...</span>
+        <div class="data-box light-box">
+            <div class="title">Lighting Control</div>
+            <div class="switch-container">
+                <div class="btn-light" id="btn-living" onclick="toggleLight('living')">Living Room</div>
+                <div class="btn-light" id="btn-garage" onclick="toggleLight('garage')">Garage</div>
+            </div>
         </div>
+
+        <div class="update-tag">Remote Control Mode <span id="last-update">Syncing...</span></div>
     </div>
 
     <script>
@@ -99,6 +119,7 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
+        // 1. ฟังค่าพลังงาน (Read-only)
         function listenToEnergy() {
             database.ref('/live_power').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -109,14 +130,40 @@
                     document.getElementById('home-amp').innerText = data.home.amp.toFixed(2);
                     document.getElementById('mg-kw').innerText = data.mg.kw.toFixed(2);
                     document.getElementById('mg-amp').innerText = (data.mg.amp || 0).toFixed(2);
-                    
-                    // แสดงเวลาที่มุมล่างซ้าย
-                    document.getElementById('last-update').innerText = "Last Update: " + (data.lastUpdate || "");
-                    
                     document.getElementById('pea-kw').innerText = data.pea.kw.toFixed(2);
                     document.getElementById('pea-amp').innerText = data.pea.amp.toFixed(2);
+                    document.getElementById('last-update').innerText = "Last Sync: " + (data.lastUpdate || "");
                 }
             });
+        }
+
+        // 2. ฟังสถานะไฟและควบคุม (Read/Write)
+        function listenToLights() {
+            database.ref('/smart_home/lights').on('value', (snapshot) => {
+                const lights = snapshot.val();
+                if (lights) {
+                    updateButtonUI('living', lights.living);
+                    updateButtonUI('garage', lights.garage);
+                }
+            });
+        }
+
+        function toggleLight(room) {
+            const ref = database.ref(`/smart_home/lights/${room}`);
+            ref.once('value').then((snapshot) => {
+                ref.set(!snapshot.val()); // สลับค่า true/false
+            });
+        }
+
+        function updateButtonUI(room, status) {
+            const btn = document.getElementById(`btn-${room}`);
+            if (status) {
+                btn.classList.add('active');
+                btn.innerText = room.toUpperCase() + " ON";
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = room.toUpperCase() + " OFF";
+            }
         }
 
         function updateClock() {
@@ -135,6 +182,7 @@
         setInterval(updateClock, 1000);
         updateClock();
         listenToEnergy();
+        listenToLights();
     </script>
 </body>
 </html>
