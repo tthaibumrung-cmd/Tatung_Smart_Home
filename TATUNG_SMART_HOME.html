@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TATUNG SMART HOME - Online Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Prompt', sans-serif; user-select: none; }
+        body { background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; }
+        
+        .screen-canvas { 
+            width: 1200px; height: 1920px; position: relative; 
+            background-size: cover; background-position: center; 
+            perspective: 2000px; 
+        }
+        
+        header { 
+            position: absolute; top: 0; left: 0; width: 100%; display: flex; 
+            justify-content: space-between; align-items: flex-start; 
+            padding: 80px 100px; color: #fff; z-index: 10; 
+        }
+        .brand-name, .time { font-size: 40px; font-weight: 600; letter-spacing: 6px; text-transform: uppercase; color: #ffffff; }
+        .project-name, .date { font-size: 25px; font-weight: 300; letter-spacing: 1px; color: #ffffff; }
+
+        /* Data Boxes ปรับความสูงและจัดกลาง */
+        .data-box { 
+            position: absolute; width: 280px; height: 180px; background: rgba(255, 255, 255, 0.08); 
+            backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.2); 
+            border-radius: 40px; z-index: 5; color: #ffffff; display: flex; 
+            flex-direction: column; justify-content: center; padding: 20px; transition: 0.3s; 
+        }
+
+        /* Positions */
+        .solar-box { top: 370px; left: 50%; transform: translateX(-50%); } 
+        .pea-box   { top: 560px; left: 87%; transform: translateX(-50%);}
+        .mg-box    { top: 1080px; left: 85%; transform: translateX(-50%);}
+        .home-box  { top: 840px; left: 33%; transform: rotateY(-25deg) rotateX(2deg); box-shadow: -20px 20px 50px rgba(0,0,0,0.5); }
+
+        .data-box .title { font-size: 22px; font-weight: 600; color: #ffffff; text-transform: uppercase; text-align: center; margin-bottom: 15px; letter-spacing: 2px; }
+        
+        /* จัดตัวเลขให้มาอยู่กึ่งกลาง */
+        .data-row { display: flex; justify-content: center; align-items: baseline; margin-bottom: 2px; gap: 10px; width: 100%; }
+        
+        .data-box .value { font-size: 32px; font-weight: 600; color: #ffffff; text-align: right; }
+        .data-box .unit { font-size: 20px; color: #ffffff; width: 45px; text-align: left; opacity: 0.8; }
+
+        /* Footer Info */
+        .update-tag { position: absolute; bottom: 40px; left: 100px; color: rgba(255,255,255,0.4); font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <div class="screen-canvas" id="canvas">
+        <header>
+            <div class="brand-container">
+                <div class="brand-name">Tatung Smart Home</div>
+                <div class="project-name">PLENO TOWN Rangsit Klong4-Wongwaen</div>
+            </div>
+            <div class="time-container">
+                <div class="time" id="clock">00:00:00</div>
+                <div class="date" id="date">...</div>
+            </div>
+        </header>
+
+        <div class="data-box solar-box">
+            <div class="title">Solar Power</div>
+            <div class="data-row"><span class="value" id="solar-kw">0.00</span><span class="unit">kW</span></div>
+            <div class="data-row"><span class="value" id="solar-amp">0.00</span><span class="unit">A</span></div>
+        </div>
+
+        <div class="data-box pea-box">
+            <div class="title">Grid PEA</div>
+            <div class="data-row"><span class="value" id="pea-kw">0.00</span><span class="unit">kW</span></div>
+            <div class="data-row"><span class="value" id="pea-amp">0.00</span><span class="unit">A</span></div>
+        </div>
+
+        <div class="data-box home-box">
+            <div class="title">Home Load</div>
+            <div class="data-row"><span class="value" id="home-kw">0.00</span><span class="unit">kW</span></div>
+            <div class="data-row"><span class="value" id="home-amp">0.00</span><span class="unit">A</span></div>
+        </div>
+
+        <div class="data-box mg-box">
+            <div class="title">MG4 Charger</div>
+            <div class="data-row"><span class="value" id="mg-kw">0.00</span><span class="unit">kW</span></div>
+            <div class="data-row"><span class="unit" style="width:100%; text-align:center;" id="last-update">Syncing...</span></div>
+        </div>
+
+        <div class="update-tag">Online Viewer Mode (Read-Only)</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            databaseURL: "https://my-tung-s-place-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // ฟังการอัปเดตจาก Firebase
+        function listenToEnergy() {
+            database.ref('/live_power').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    document.getElementById('solar-kw').innerText = data.solar.kw.toFixed(2);
+                    document.getElementById('solar-amp').innerText = data.solar.amp.toFixed(2);
+                    
+                    document.getElementById('home-kw').innerText = data.home.kw.toFixed(2);
+                    document.getElementById('home-amp').innerText = data.home.amp.toFixed(2);
+                    
+                    document.getElementById('mg-kw').innerText = data.mg.kw.toFixed(2);
+                    document.getElementById('last-update').innerText = "Update: " + (data.lastUpdate || "");
+                    
+                    document.getElementById('pea-kw').innerText = data.pea.kw.toFixed(2);
+                    document.getElementById('pea-amp').innerText = data.pea.amp.toFixed(2);
+                }
+            });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH', {hour12:false});
+            document.getElementById('date').innerText = now.toLocaleDateString('th-TH', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+            const h = now.getHours();
+            const bg = (h >= 18 || h < 6) ? "https://images.weserv.nl/?url=drive.google.com/uc?id=1LoXsjr1WRChv_wdaV-1WRYegaeDnTuN-" : "https://images.weserv.nl/?url=drive.google.com/uc?id=15PyIhFp6S9lx-O1HEn1dlda1s2M3I3R6";
+            document.getElementById('canvas').style.backgroundImage = `url('${bg}')`;
+        }
+
+        const autoScale = () => { document.getElementById('canvas').style.zoom = Math.min(window.innerWidth / 1200, window.innerHeight / 1920); };
+
+        window.onresize = autoScale;
+        autoScale();
+        setInterval(updateClock, 1000);
+        updateClock();
+        listenToEnergy();
+    </script>
+</body>
+</html>
