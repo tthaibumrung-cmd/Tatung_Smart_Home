@@ -2,20 +2,41 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TATUNG SMART HOME - Live Energy (External View)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TATUNG SMART HOME - Live Energy</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
+        /* ล็อคขนาดฟอนต์พื้นฐานไม่ให้เบราว์เซอร์ในโทรศัพท์แอบขยายเอง */
+        html { 
+            -webkit-text-size-adjust: 100%; 
+            text-size-adjust: 100%;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Prompt', sans-serif; user-select: none; }
-        body { background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; }
+        
+        body { 
+            background-color: #000; 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; /* เปลี่ยนเป็น start เพื่อให้ scale จากด้านบน */
+            height: 100vh; 
+            width: 100vw; 
+            overflow: hidden; 
+        }
         
         .screen-canvas { 
-            width: 1200px; height: 1920px; position: relative; 
-            background-size: cover; background-position: center; 
+            width: 1200px; 
+            height: 1920px; 
+            position: absolute; /* ใช้ absolute เพื่อการทำ Scale ที่นิ่งกว่า */
+            top: 0;
+            left: 50%;
+            transform-origin: top center; /* ล็อคจุดหมุนไว้กึ่งกลางด้านบน */
+            background-size: cover; 
+            background-position: center; 
             perspective: 2000px; 
         }
         
@@ -49,7 +70,7 @@
             top: 240px; left: 50%; transform: translateX(-50%); 
             height: auto; min-height: 150px; padding: 20px 0;
         } 
-        .pea-box   { top: 350px; left: 87%; transform: translateX(-50%); height: auto; min-height: 150px; padding: 20px 0;}
+        .pea-box   { top: 350px; left: 87%; transform: translateX(-50%); height: auto; min-height: 150px; padding: 5px 0;}
         .mg-box    { top: 1080px; left: 85%; transform: translateX(-50%);}
         .home-box { 
             top: 840px; left: 33%; 
@@ -75,46 +96,14 @@
         .sub-light-btn { width: 240px; height: 70px; border-radius: 18px; background: rgba(255, 255, 255, 0.05); color: #fff; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; padding: 0 25px; }
         .sub-light-btn.on { background: #34c759; color: #000; box-shadow: 0 0 20px rgba(52, 199, 89, 0.5); }
 
-        .pea-box .data-row {
-            justify-content: flex-start;
-            padding-left: 30px;         
-            white-space: nowrap;        
-        }
-
-        .pea-box .unit {
-            width: auto;               
-            min-width: 65px;           
-            margin-right: 5px;
-        }
-
-        .pea-box .sheet-val {
-            min-width: 60px;           
-            text-align: right;         
-        }
-        .row-center {
-            justify-content: center !important; 
-            padding-left: 0 !important; 
-            width: 100% !important;
-            display: flex !important;
-            margin: 5px 0;
-        }
-
-        .month-label {
-            color: #ffcc00; 
-            font-size: 22px !important;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .pea-box .data-row:not(.row-center) {
-            justify-content: flex-start;
-            padding-left: 40px;
-        }   
-        .solar-month {
-            color: #ffcc00 !important;
-            font-size: 22px !important;
-            font-weight: 600;
-        }  
+        /* จัดระเบียบข้อความ PEA Box ให้เล็กลงและไม่ซ้อนกัน */
+        .pea-box .data-row { justify-content: flex-start; padding-left: 30px; white-space: nowrap; }
+        .pea-box .unit { width: auto; min-width: 65px; margin-right: 5px; }
+        .pea-box .sheet-val { min-width: 60px; text-align: right; }
+        .row-center { justify-content: center !important; padding-left: 0 !important; width: 100% !important; display: flex !important; margin: 5px 0; }
+        .month-label { color: #ffcc00; font-size: 22px !important; font-weight: 600; text-align: center; }
+        .pea-box .data-row:not(.row-center) { justify-content: flex-start; padding-left: 40px; }   
+        .solar-month { color: #ffcc00 !important; font-size: 22px !important; font-weight: 600; }  
     </style>
 </head>
 <body>
@@ -139,15 +128,11 @@
             <div class="title">Solar Power</div>
             <div class="data-row"><span class="value" id="solar-kw">0.00</span><span class="unit">kW</span></div>
             <div class="data-row"><span class="value" id="solar-amp">0.00</span><span class="unit">A</span></div>
-            
             <hr style="border: 0.5px solid rgba(255,255,255,0.1); margin: 10px 20px;">
-
             <div class="data-row"><span class="sheet-val solar-month" id="sheet-ae4">...</span></div>
             <div class="data-row"><span class="sheet-val" id="sheet-ap4">0.0</span><span class="unit">kWh</span></div>
             <div class="data-row"><span class="sheet-val" id="sheet-aq4">0.0</span><span class="unit">THB</span></div>
-
             <hr style="border: 0.2px solid rgba(255,255,255,0.05); margin: 5px 40px;">
-
             <div class="data-row"><span class="sheet-val solar-month" id="sheet-ae5">...</span></div>
             <div class="data-row"><span class="sheet-val" id="sheet-ap5">0.0</span><span class="unit">kWh</span></div>
             <div class="data-row"><span class="sheet-val" id="sheet-aq5">0.0</span><span class="unit">THB</span></div>
@@ -157,21 +142,13 @@
             <div class="title">Grid PEA</div>
             <div class="data-row"><span class="value" id="pea-kw">0.00</span><span class="unit">kW</span></div>
             <div class="data-row"><span class="value" id="pea-amp">0.00</span><span class="unit">A</span></div>
-
             <hr style="border: 0.5px solid rgba(255,255,255,0.1); margin: 10px 20px;">
-
-            <div class="data-row row-center">
-                <span class="sheet-val month-label" id="sheet-ae4-pea">...</span>
-            </div>
+            <div class="data-row row-center"><span class="sheet-val month-label" id="sheet-ae4-pea">...</span></div>
             <div class="data-row"><span class="unit">On Peak:</span><span class="sheet-val" id="sheet-ar4">0.00</span><span class="unit">kWh</span></div>
             <div class="data-row"><span class="unit">Off Peak:</span><span class="sheet-val" id="sheet-au4">0.00</span><span class="unit">kWh</span></div>
             <div class="data-row"><span class="unit">Total:</span><span class="sheet-val" id="sheet-ba4">0.00</span><span class="unit">THB</span></div>
-
             <hr style="border: 0.2px solid rgba(255,255,255,0.05); margin: 5px 40px;">
-
-            <div class="data-row row-center">
-                <span class="sheet-val month-label" id="sheet-ae5-pea">...</span>
-            </div>
+            <div class="data-row row-center"><span class="sheet-val month-label" id="sheet-ae5-pea">...</span></div>
             <div class="data-row"><span class="unit">On Peak:</span><span class="sheet-val" id="sheet-ar5">0.00</span><span class="unit">kWh</span></div>
             <div class="data-row"><span class="unit">Off Peak:</span><span class="sheet-val" id="sheet-au5">0.00</span><span class="unit">kWh</span></div>
             <div class="data-row"><span class="unit">Total:</span><span class="sheet-val" id="sheet-ba5">0.00</span><span class="unit">THB</span></div>
@@ -203,18 +180,13 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // --- ฟังชั่นดึงข้อมูลจาก Google Sheet (ดึงอย่างเดียว ไม่ Push ลง Firebase เพื่อกันการเขียนทับซ้อน) ---
         async function fetchSheetData() {
             const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-fd38Le-m1AsmHvRRJN7raFnGB-_JsKfm9JENlcRVK-GoUhyJsbWs8_P5Rt5RQEyxGOFGJi7-uXJw/pub?gid=0&single=true&output=csv';
-            
             try {
                 const response = await fetch(sheetUrl);
                 const csvText = await response.text();
                 const rows = csvText.split('\n').map(row => row.split(','));
-
                 if (rows.length < 5) return; 
-
-                // แถวที่ 4
                 document.getElementById('sheet-ae4').innerText = rows[3][30] ? rows[3][30].trim() : '...';
                 document.getElementById('sheet-ap4').innerText = rows[3][41] || '0.0';
                 document.getElementById('sheet-aq4').innerText = rows[3][42] || '0.0';
@@ -222,8 +194,6 @@
                 document.getElementById('sheet-ar4').innerText = rows[3][43] || '0.0';
                 document.getElementById('sheet-au4').innerText = rows[3][46] || '0.0';
                 document.getElementById('sheet-ba4').innerText = rows[3][52] || '0.0';
-
-                // แถวที่ 5
                 document.getElementById('sheet-ae5').innerText = rows[4][30] ? rows[4][30].trim() : '...';
                 document.getElementById('sheet-ap5').innerText = rows[4][41] || '0.0';
                 document.getElementById('sheet-aq5').innerText = rows[4][42] || '0.0';
@@ -231,13 +201,9 @@
                 document.getElementById('sheet-ar5').innerText = rows[4][43] || '0.0';
                 document.getElementById('sheet-au5').innerText = rows[4][46] || '0.0';
                 document.getElementById('sheet-ba5').innerText = rows[4][52] || '0.0';
-
-            } catch (e) { 
-                console.error("Error fetching sheet:", e); 
-            }
+            } catch (e) { console.error("Error fetching sheet:", e); }
         }
 
-        // --- รับค่า Live Data จาก Firebase อัตโนมัติ ---
         database.ref('/live_power').on('value', snap => {
             const data = snap.val();
             if (data) {
@@ -260,7 +226,6 @@
             }
         });
 
-        // --- ระบบสวิตช์ไฟ ---
         const roomNames = ["ห้องนั่งเล่น", "ห้องครัว1", "ห้องครัว2", "ห้องน้องแมว", "หน้าบ้าน"];
         const lightMenu = document.getElementById('lightMenu');
         for (let i = 1; i <= 6; i++) {
@@ -268,16 +233,13 @@
             btn.className = 'sub-light-btn';
             const roomDisplayName = i === 6 ? "Room 6 All" : (roomNames[i-1] || `Room ${i}`);
             btn.innerHTML = `<span>${roomDisplayName}</span> <small id="s${i}">OFF</small>`;
-            
             database.ref(`/lights/room${i}`).on('value', snap => {
                 const on = snap.val() === 1;
                 btn.classList.toggle('on', on);
                 document.getElementById(`s${i}`).innerText = on ? "ON" : "OFF";
             });
-            
             btn.onclick = () => {
-                const isCurrentlyOn = btn.classList.contains('on');
-                const newVal = isCurrentlyOn ? 0 : 1;
+                const newVal = btn.classList.contains('on') ? 0 : 1;
                 if (i === 6) {
                     const updates = {};
                     for(let r = 1; r <= 6; r++) { updates[`/lights/room${r}`] = newVal; }
@@ -289,7 +251,6 @@
             lightMenu.appendChild(btn);
         }
 
-        // --- ระบบนาฬิกาและพื้นหลัง ---
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH', {hour12:false});
@@ -299,16 +260,24 @@
             document.getElementById('canvas').style.backgroundImage = `url('${bg}')`;
         }
 
-        document.getElementById('mainBtn').onclick = () => lightMenu.classList.toggle('active');
-        const autoScale = () => { document.getElementById('canvas').style.zoom = Math.min(window.innerWidth / 1200, window.innerHeight / 1920); };
+        // ระบบ Scale ใหม่ที่ล็อคตำแหน่งได้ 100% ไม่ทับกัน
+        const autoScale = () => { 
+            const canvas = document.getElementById('canvas');
+            const designWidth = 1200;
+            const designHeight = 1920;
+            const scale = Math.min(window.innerWidth / designWidth, window.innerHeight / designHeight);
+            canvas.style.transform = `translateX(-50%) scale(${scale})`; 
+        };
 
-        window.onresize = autoScale;
-        autoScale();
-        setInterval(updateClock, 1000);
-        setInterval(fetchSheetData, 1800000); // อัปเดตข้อมูล Sheet ทุก 30 นาที
+        window.addEventListener('resize', autoScale);
+        document.getElementById('mainBtn').onclick = () => lightMenu.classList.toggle('active');
         
+        // เริ่มงาน
+        autoScale();
         updateClock();
         fetchSheetData();
+        setInterval(updateClock, 1000);
+        setInterval(fetchSheetData, 1800000);
     </script>
 </body>
 </html>
